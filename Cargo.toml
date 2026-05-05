@@ -1,0 +1,16 @@
+[package]
+name = "berlin-ubahn-d-f"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[patch.crates-io]
+lotus-script = { path = "../../script-rs/lotus-script" }
+lotus-script-sys = { path = "../../script-rs/lotus-script-sys" }
+lotus-extra = { path = "../../lotus-extra" }
+
+[dependencies]
+lotus-extra = "0.2.3"
+lotus-script = "*"
