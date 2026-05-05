@@ -1,5 +1,5 @@
 use lotus_extra::bb_system::{
-    basic::{ModuleInit, ModuleTick},
+    basic::{ModuleInit, ModuleOnMessage, ModuleTick},
     pneumatics::{BBPneumaticSystem, PneumaticSystem, ValveAutomatic},
 };
 
@@ -110,6 +110,12 @@ impl ModuleInit<BBPneumaticSystem> for Pneumatic {
     }
 }
 
+impl ModuleOnMessage<BBPneumaticSystem> for Pneumatic {
+    fn on_message(&self, bb: &mut BBPneumaticSystem, msg: &lotus_script::message::Message) {
+        self.system.on_message(bb, msg);
+    }
+}
+
 impl Pneumatic {
     pub fn set_wagenteil(&mut self, wagenteil: Wagenteil) {
         self.wagenteil = wagenteil;
@@ -123,9 +129,5 @@ impl Pneumatic {
                 },
             );
         }
-    }
-
-    pub fn on_message(&self, bb: &mut BBPneumaticSystem, msg: lotus_script::message::Message) {
-        self.system.on_message(bb, msg);
     }
 }

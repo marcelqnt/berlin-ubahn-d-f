@@ -1,5 +1,5 @@
 use lotus_extra::bb_system::{
-    basic::{ModuleInit, ModuleTick},
+    basic::{ModuleInit, ModuleOnMessage, ModuleTick},
     pneumatics::BBPneumaticSystem,
 };
 use lotus_script::prelude::*;
@@ -63,7 +63,7 @@ impl Script for MyScript {
         })
         .unwrap();
 
-        self.modules.on_message(&mut self.backbone, msg);
+        self.modules.on_message(&mut self.backbone, &msg);
     }
 }
 
@@ -73,10 +73,6 @@ struct Modules {
 }
 
 impl Modules {
-    fn on_message(&mut self, backbone: &mut Backbone, msg: lotus_script::message::Message) {
-        self.pneumatic.on_message(&mut backbone.pneumatic, msg);
-    }
-
     fn set_wagenteil(&mut self, wagenteil: Wagenteil) {
         self.pneumatic.set_wagenteil(wagenteil);
     }
@@ -91,6 +87,12 @@ impl ModuleTick<Backbone> for Modules {
 impl ModuleInit<Backbone> for Modules {
     fn init(&self, bb: &mut Backbone) {
         self.pneumatic.init(&mut bb.pneumatic);
+    }
+}
+
+impl ModuleOnMessage<Backbone> for Modules {
+    fn on_message(&self, backbone: &mut Backbone, msg: &lotus_script::message::Message) {
+        self.pneumatic.on_message(&mut backbone.pneumatic, msg);
     }
 }
 
