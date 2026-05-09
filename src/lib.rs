@@ -132,7 +132,7 @@ struct Backbone {
 
 impl BackBoneResetInputOutput for Backbone {
     fn reset(&mut self, reset_type: BackBoneResetType) {
-        // self.pneumatic.reset(reset_type);
+        self.pneumatic.reset(reset_type);
         self.fahrpult.reset(reset_type);
     }
 }

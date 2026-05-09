@@ -14,7 +14,7 @@ impl Modules {
 
         if fahrpult
             .key
-            .state
+            .state()
             .forward_on_changed(&mut pneumatic.compressor_armed)
         {
             log::info!(
