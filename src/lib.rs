@@ -1,14 +1,12 @@
-use lotus_extra::bb_system::{
-    basic::{
-        BackBoneResetInputOutput, BackBoneResetType, ModuleInit, ModuleOnMessage, ModuleTick,
-        handle_message,
-    },
-    pneumatics::BBPneumaticSystem,
+use lotus_extra::bb_modules;
+use lotus_extra::bb_system::{BBVehicle, TickExtra};
+use lotus_script::{
+    Script, message::Message, prelude::*, script, vehicle::spawned_inverted_to_train,
 };
-use lotus_script::{action::ActionEvent, prelude::*, vehicle::spawned_inverted_to_train};
 
 use crate::{
     fahrpult::{BBFahrpult, Fahrpult},
+    interface::DfInterface,
     pneumatic::{BBPneumatic, Pneumatic},
 };
 
@@ -34,105 +32,113 @@ impl Wagenteil {
     }
 }
 
-#[derive(Default)]
-pub struct MyScript {
-    modules: Modules,
-    backbone: Backbone,
+struct DfExtras {
+    wagenteil: Wagenteil,
+}
+
+impl Default for DfExtras {
+    fn default() -> Self {
+        Self {
+            wagenteil: determine_wagenteil(),
+        }
+    }
+}
+
+impl TickExtra for DfExtras {}
+
+fn determine_wagenteil() -> Wagenteil {
+    let wagenteil = if spawned_inverted_to_train() {
+        Wagenteil::K
+    } else {
+        Wagenteil::S
+    };
+
+    apply_wagenteil_vars(wagenteil);
+
+    wagenteil
+}
+
+fn apply_wagenteil_vars(wagenteil: Wagenteil) {
+    let is_k = wagenteil.is_k();
+
+    set_var("IsK", is_k);
+    set_var("IsS", !is_k);
+
+    let veh_number = if is_k { "2679" } else { "2678" };
+    set_var::<String>("veh_number", veh_number.into());
+    set_var::<String>("VehNr_String", veh_number.into());
+}
+
+type BbVehicle = BBVehicle<Modules, Backbone, DfExtras, DfInterface>;
+
+pub struct MyScript(BbVehicle);
+
+impl Default for MyScript {
+    fn default() -> Self {
+        let extras = DfExtras::default();
+        Self(BBVehicle::new(
+            Modules::new(extras.wagenteil),
+            Backbone::default(),
+            extras,
+            DfInterface::default(),
+        ))
+    }
+}
+
+impl Script for MyScript {
+    fn init(&mut self) {
+        self.0.init();
+    }
+
+    fn tick(&mut self) {
+        self.0.tick();
+    }
+
+    fn on_message(&mut self, msg: Message) {
+        self.0.on_message(msg);
+    }
 }
 
 script!(MyScript);
 
-impl Script for MyScript {
-    fn init(&mut self) {
-        self.modules.init(&mut self.backbone);
-
-        log::info!("Initialized");
-    }
-
-    fn tick(&mut self) {
-        self.backbone.reset_inputs();
-
-        self.modules.tick_interface(&mut self.backbone);
-
-        self.backbone.reset_outputs();
-
-        self.modules.tick(&mut self.backbone);
-
-        set_var("veh_number", "1");
-    }
-
-    fn on_message(&mut self, msg: lotus_script::message::Message) {
-        // if msg.source().coupling.is_none() {
-        //     log::info!("Message: {:?}", msg);
-        // }
-
-        // handle_message(&msg, |a: ActionEvent| -> bool {
-        //     log::info!("ActionState: {:?}", a);
-        //     true
-        // });
-
-        self.modules.on_message(&mut self.backbone, &msg);
-        self.modules
-            .fahrpult
-            .on_message(&mut self.backbone.fahrpult, &msg);
-    }
-}
-
-struct Modules {
+pub struct Modules {
     pneumatic: Pneumatic,
     fahrpult: Fahrpult,
 }
 
-impl Default for Modules {
-    fn default() -> Self {
+impl Modules {
+    fn new(wagenteil: Wagenteil) -> Self {
         Self {
-            pneumatic: Pneumatic::new(Self::set_and_return_wagenteil()),
+            pneumatic: Pneumatic::new(wagenteil),
             fahrpult: Fahrpult::default(),
         }
     }
 }
 
-impl Modules {
-    fn set_and_return_wagenteil() -> Wagenteil {
-        let is_k = spawned_inverted_to_train();
-
-        set_var("IsK", is_k);
-        set_var("IsS", !is_k);
-        set_var("veh_number", if is_k { "2679" } else { "2678" });
-
-        if is_k { Wagenteil::K } else { Wagenteil::S }
-    }
-}
-
-impl ModuleTick<Backbone> for Modules {
-    fn tick(&self, bb: &mut Backbone) {
-        self.pneumatic.tick(&mut bb.pneumatic);
-        self.fahrpult.tick(&mut bb.fahrpult);
-    }
-}
-
-impl ModuleInit<Backbone> for Modules {
-    fn init(&self, bb: &mut Backbone) {
-        self.pneumatic.init(&mut bb.pneumatic);
-        self.fahrpult.init(&mut bb.fahrpult);
-    }
-}
-
-impl ModuleOnMessage<Backbone> for Modules {
-    fn on_message(&self, backbone: &mut Backbone, msg: &lotus_script::message::Message) -> bool {
-        self.pneumatic.on_message(&mut backbone.pneumatic, msg)
+bb_modules! {
+    Modules => Backbone {
+        tick {
+            pneumatic => pneumatic;
+            fahrpult => fahrpult;
+        }
+        init {
+            pneumatic => pneumatic;
+            fahrpult => fahrpult;
+        }
+        on_action {
+            fahrpult => fahrpult;
+        }
+        on_message {
+            pneumatic => pneumatic;
+        }
+        reset {
+            pneumatic, fahrpult,
+        }
     }
 }
 
 #[derive(Default)]
-struct Backbone {
-    pneumatic: BBPneumatic,
-    fahrpult: BBFahrpult,
-}
-
-impl BackBoneResetInputOutput for Backbone {
-    fn reset(&mut self, reset_type: BackBoneResetType) {
-        self.pneumatic.reset(reset_type);
-        self.fahrpult.reset(reset_type);
-    }
+pub struct Backbone {
+    pub pneumatic: BBPneumatic,
+    pub fahrpult: BBFahrpult,
 }

@@ -1,12 +1,13 @@
 use lotus_extra::{
     bb_system::{
         basic::{
-            BackBoneResetInputOutput, BackBoneResetType, ModuleInit, ModuleOnMessage, ModuleTick,
+            BackBoneResetInputOutput, BackBoneResetType, ModuleInit, ModuleOnAction, ModuleTick,
         },
         cockpit::{BBButton, Button, ButtonBehaviour},
     },
     input::InputEvent,
 };
+use lotus_script::action::ActionEvent;
 
 pub struct Fahrpult {
     key: Button,
@@ -34,9 +35,9 @@ impl ModuleInit<BBFahrpult> for Fahrpult {
     }
 }
 
-impl ModuleOnMessage<BBFahrpult> for Fahrpult {
-    fn on_message(&self, backbone: &mut BBFahrpult, msg: &lotus_script::message::Message) -> bool {
-        self.key.on_message(&mut backbone.key, msg)
+impl ModuleOnAction<BBFahrpult> for Fahrpult {
+    fn on_action(&self, backbone: &mut BBFahrpult, action: &ActionEvent) -> bool {
+        self.key.on_action(&mut backbone.key, action)
     }
 }
 

@@ -7,10 +7,10 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [patch.crates-io]
-lotus-script = { path = "../../script-rs/lotus-script" }
-lotus-script-sys = { path = "../../script-rs/lotus-script-sys" }
+lotussim-script = { path = "../../script-rs/lotus-script" }
+lotussim-script-sys = { path = "../../script-rs/lotus-script-sys" }
 lotus-extra = { path = "../../lotus-extra" }
 
 [dependencies]
-lotus-extra = "0.2.3"
-lotus-script = "*"
+lotus-extra = "0.3.3"
+lotussim-script = "*"
